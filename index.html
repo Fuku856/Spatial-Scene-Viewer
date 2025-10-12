@@ -26,42 +26,50 @@
         
         /* テーマ: 星空 */
         body.theme-stars {
-            background: #000;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            background-size: 200% 200%;
+            animation: backgroundShift 120s ease-in-out infinite;
+        }
+        
+        @keyframes backgroundShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
         
         body.theme-stars::before {
             content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="%23000" width="100%" height="100%"/></svg>'),
-                url('assets/skystarfield_aom_lq.jpg');
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 120%;
+            background-image: url('assets/skystarfield_aom_lq.jpg');
             background-size: cover;
             background-position: center;
+            opacity: 0.6;
             z-index: -2;
+            animation: slowRotate 200s linear infinite;
         }
         
         body.theme-stars::after {
             content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 120%;
             background-image: url('assets/cosmostar_aom_lq.jpg');
             background-size: cover;
             background-position: center;
-            opacity: 0.5;
+            opacity: 0.4;
             z-index: -1;
-            animation: float 60s infinite alternate ease-in-out;
+            animation: slowRotate 300s linear infinite reverse;
         }
         
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(-2%, 2%) scale(1.05); }
+        @keyframes slowRotate {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.05); }
+            100% { transform: rotate(360deg) scale(1); }
         }
         
         /* 動く星のアニメーション */
@@ -76,23 +84,40 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1;
+            z-index: 0;
             pointer-events: none;
+            overflow: hidden;
         }
         
         .star {
             position: absolute;
-            width: 2px;
-            height: 2px;
             background: white;
             border-radius: 50%;
-            animation: twinkle linear infinite;
-            box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+            animation: twinkleFloat linear infinite;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
         }
         
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.5); }
+        @keyframes twinkleFloat {
+            0% { 
+                opacity: 0.3; 
+                transform: translateY(0) scale(1);
+            }
+            25% {
+                opacity: 1;
+                transform: translateY(-20px) scale(1.5);
+            }
+            50% {
+                opacity: 0.5;
+                transform: translateY(-40px) scale(1);
+            }
+            75% {
+                opacity: 1;
+                transform: translateY(-60px) scale(1.3);
+            }
+            100% { 
+                opacity: 0.3; 
+                transform: translateY(-80px) scale(1);
+            }
         }
         
         /* テーマ切り替えボタン */
@@ -131,6 +156,8 @@
             border-radius: 24px;
             padding: 40px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
         }
         h1 {
             font-size: 32px;
@@ -585,13 +612,19 @@
         // 動く星を生成
         function createStars() {
             starsContainer.innerHTML = '';
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 150; i++) {
                 const star = document.createElement('div');
                 star.className = 'star';
                 star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.animationDuration = (Math.random() * 3 + 2) + 's';
-                star.style.animationDelay = Math.random() * 2 + 's';
+                star.style.top = Math.random() * 120 + '%';
+                star.style.animationDuration = (Math.random() * 5 + 3) + 's';
+                star.style.animationDelay = Math.random() * 5 + 's';
+                
+                // ランダムなサイズ
+                const size = Math.random() * 2 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                
                 starsContainer.appendChild(star);
             }
         }
