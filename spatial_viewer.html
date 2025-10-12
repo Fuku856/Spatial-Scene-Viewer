@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Spatial Scene Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .generator-link {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 16px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        .generator-link p {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .generator-link a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .generator-link a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 16px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(102, 126, 234, 0.05);
+            margin-bottom: 30px;
+        }
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.1);
+            transform: translateY(-2px);
+        }
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.15);
+        }
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .upload-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .upload-hint {
+            font-size: 14px;
+            color: #666;
+        }
+        #fileInput {
+            display: none;
+        }
+        .status {
+            text-align: center;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .status.success {
+            background: rgba(76, 175, 80, 0.1);
+            color: #2e7d32;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        .status.error {
+            background: rgba(244, 67, 54, 0.1);
+            color: #c62828;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 12px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .instructions {
+            background: rgba(102, 126, 234, 0.05);
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 30px;
+        }
+        .instructions h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        .instructions ol {
+            margin-left: 20px;
+            color: #666;
+            line-height: 1.8;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        #viewerScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: none;
+        }
+        .title-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10001;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 15px 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .title-bar-left {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .title-bar-right {
+            display: flex;
+            gap: 10px;
+        }
+        .header-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+        .header-btn.danger {
+            background: rgba(244, 67, 54, 0.2);
+            border-color: rgba(244, 67, 54, 0.4);
+        }
+        .header-btn.danger:hover {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        #sceneContainer {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            perspective: 800px;
+            perspective-origin: 50% 50%;
+            overflow: hidden;
+        }
+        .layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
+        }
+        .layer img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #cameraPreview {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 160px;
+            height: 120px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            z-index: 10000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        #trackingStatus {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 13px;
+            z-index: 10000;
+            display: none;
+            max-width: 90%;
+            text-align: center;
+        }
+        @media screen and (max-width: 768px) {
+            .title-bar {
+                padding: 10px 15px;
+            }
+            .title-bar-left {
+                font-size: 14px;
+            }
+            .header-btn {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            .title-bar-right {
+                flex-wrap: wrap;
+            }
+            #cameraPreview {
+                width: 100px;
+                height: 75px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 3D Spatial Scene Viewer</h1>
+        <p class="subtitle">深度推定で生成したHTMLファイルをアップロードして、すぐに3D体験</p>
+
+        <div class="generator-link">
+            <p>💡 まだHTMLファイルを作成していませんか？</p>
+            <a href="https://huggingface.co/spaces/Ryo563/spatial-scene-generator" target="_blank" rel="noopener noreferrer">
+                🚀 3D Spatial Scene Generator で作成する
+            </a>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">HTMLファイルをドロップ</div>
+            <div class="upload-hint">または、クリックしてファイルを選択</div>
+        </div>
+
+        <input type="file" id="fileInput" accept=".html">
+
+        <button class="btn btn-primary" id="openBtn" disabled>🚀 3D体験を開始</button>
+
+        <div class="instructions">
+            <h3>📝 使い方</h3>
+            <ol>
+                <li>上のリンクから画像をアップロードしてHTMLファイルを生成</li>
+                <li>ダウンロードしたHTMLファイルをドラッグ&ドロップ</li>
+                <li>「3D体験を開始」ボタンをクリック</li>
+                <li>上部のバーの「カメラ開始」ボタンをクリック</li>
+                <li>顔を前後左右に動かして3D空間を楽しむ！</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="title-bar" id="titleBar">
+        <div class="title-bar-left">
+            <span>🎬</span>
+            <span>3D Spatial Scene Viewer</span>
+        </div>
+        <div class="title-bar-right">
+            <button class="header-btn" id="resetBtn" style="display: none;">🔄 リセット</button>
+            <button class="header-btn" id="startCameraBtn" style="display: none;">▶️ カメラ開始</button>
+            <button class="header-btn" id="stopCameraBtn" style="display: none;">⏸️ カメラ停止</button>
+            <button class="header-btn danger" id="closeBtn">✕ 閉じる</button>
+        </div>
+    </div>
+
+    <div id="viewerScreen">
+        <div id="sceneContainer"></div>
+        <div id="cameraPreview">
+            <video id="cameraVideo" autoplay playsinline muted></video>
+        </div>
+        <div id="trackingStatus">カメラ開始ボタンをクリック</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const openBtn = document.getElementById('openBtn');
+        const status = document.getElementById('status');
+        const viewerScreen = document.getElementById('viewerScreen');
+        const sceneContainer = document.getElementById('sceneContainer');
+        const titleBar = document.getElementById('titleBar');
+        const closeBtn = document.getElementById('closeBtn');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const trackingStatus = document.getElementById('trackingStatus');
+
+        let htmlContent = null;
+        let detector = null;
+        let isTracking = false;
+        let streamRef = null;
+        let smoothX = 0;
+        let smoothY = 0;
+        let smoothZ = 0;
+        const smoothFactor = 0.2;
+        let initialFaceWidth = null;
+        let faceDetected = false;
+        let noFaceCounter = 0;
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFile(e.target.files[0]);
+        });
+
+        function validateSpatialSceneHTML(htmlString) {
+            // HTMLをパース
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+
+            // 検証1: メタタグをチェック
+            const metaTag = doc.querySelector('meta[name="spatial-scene-generator"]');
+            if (!metaTag) {
+                return {
+                    valid: false,
+                    error: 'このHTMLファイルは3D Spatial Scene Generatorで作成されたものではありません。'
+                };
+            }
+
+            // 検証2: .layerクラスの存在をチェック
+            const layers = doc.querySelectorAll('.layer');
+            if (layers.length === 0) {
+                return {
+                    valid: false,
+                    error: 'レイヤー情報が見つかりません。正しいファイルか確認してください。'
+                };
+            }
+
+            // 検証3: レイヤー内に画像があるかチェック
+            const layerImages = doc.querySelectorAll('.layer img');
+            if (layerImages.length === 0) {
+                return {
+                    valid: false,
+                    error: 'レイヤー画像が見つかりません。正しいファイルか確認してください。'
+                };
+            }
+
+            return {
+                valid: true,
+                layerCount: layerImages.length
+            };
+        }
+
+        function handleFile(file) {
+            if (!file) return;
+
+            if (!file.name.endsWith('.html')) {
+                showStatus('❌ HTMLファイルを選択してください', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+
+                // ファイルを検証
+                const validation = validateSpatialSceneHTML(content);
+
+                if (!validation.valid) {
+                    showStatus('❌ ' + validation.error, 'error');
+                    openBtn.disabled = true;
+                    htmlContent = null;
+                    return;
+                }
+
+                // 検証成功
+                htmlContent = content;
+                showStatus(`✅ ファイル検証完了！（${validation.layerCount}層のレイヤーを検出）`, 'success');
+                openBtn.disabled = false;
+            };
+            reader.onerror = () => {
+                showStatus('❌ ファイルの読み込みに失敗しました', 'error');
+            };
+            reader.readAsText(file);
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+
+        openBtn.addEventListener('click', () => {
+            if (!htmlContent) return;
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const layers = doc.querySelectorAll('.layer img');
+
+            sceneContainer.innerHTML = '';
+            layers.forEach((img, index) => {
+                const layerDiv = document.createElement('div');
+                layerDiv.className = 'layer';
+                layerDiv.id = 'layer' + index;
+
+                const imgEl = document.createElement('img');
+                imgEl.src = img.src;
+                layerDiv.appendChild(imgEl);
+
+                sceneContainer.appendChild(layerDiv);
+            });
+
+            viewerScreen.style.display = 'block';
+            titleBar.style.display = 'flex';
+            startCameraBtn.style.display = 'inline-block';
+            trackingStatus.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        });
+
+        startCameraBtn.addEventListener('click', async () => {
+            try {
+                trackingStatus.textContent = '⏳ カメラ初期化中...';
+
+                streamRef = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: 640, height: 480 }
+                });
+
+                cameraVideo.srcObject = streamRef;
+                await cameraVideo.play();
+                cameraPreview.style.display = 'block';
+
+                trackingStatus.textContent = '🔄 顔検出モデル読み込み中...';
+                const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+                detector = await faceLandmarksDetection.createDetector(model, {
+                    runtime: 'mediapipe',
+                    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh'
+                });
+
+                isTracking = true;
+                initialFaceWidth = null;
+                faceDetected = false;
+                noFaceCounter = 0;
+                startCameraBtn.style.display = 'none';
+                stopCameraBtn.style.display = 'inline-block';
+                resetBtn.style.display = 'inline-block';
+                detectFace();
+
+            } catch(e) {
+                trackingStatus.textContent = '❌ カメラエラー: ' + e.message;
+            }
+        });
+
+        stopCameraBtn.addEventListener('click', () => {
+            stopCamera();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            smoothX = 0;
+            smoothY = 0;
+            smoothZ = 0;
+            initialFaceWidth = null;
+
+            const layers = sceneContainer.querySelectorAll('.layer');
+            layers.forEach(layer => layer.style.transform = '');
+
+            trackingStatus.textContent = '🔄 カメラ位置をリセットしました';
+        });
+
+        function stopCamera() {
+            isTracking = false;
+
+            if (detector) detector = null;
+
+            if (streamRef) {
+                streamRef.getTracks().forEach(track => track.stop());
+                streamRef = null;
+            }
+
+            if (cameraVideo.srcObject) cameraVideo.srcObject = null;
+
+            cameraPreview.style.display = 'none';
+            stopCameraBtn.style.display = 'none';
+            resetBtn.style.display = 'none';
+            startCameraBtn.style.display = 'inline-block';
+            trackingStatus.textContent = 'カメラ停止中';
+
+            const layers = sceneContainer.querySelectorAll('.layer');
+            layers.forEach(layer => layer.style.transform = '');
+            smoothX = 0;
+            smoothY = 0;
+            smoothZ = 0;
+            initialFaceWidth = null;
+        }
+
+        async function detectFace() {
+            if (!isTracking || !detector) return;
+
+            try {
+                if (cameraVideo.readyState === cameraVideo.HAVE_ENOUGH_DATA) {
+                    const faces = await detector.estimateFaces(cameraVideo);
+
+                    if (faces && faces.length > 0) {
+                        faceDetected = true;
+                        noFaceCounter = 0;
+
+                        const nose = faces[0].keypoints[1];
+                        const leftEye = faces[0].keypoints[33];
+                        const rightEye = faces[0].keypoints[263];
+
+                        const targetX = ((nose.x / cameraVideo.videoWidth) - 0.5) * 2;
+                        const targetY = ((nose.y / cameraVideo.videoHeight) - 0.5) * 2;
+
+                        const faceWidth = Math.abs(rightEye.x - leftEye.x);
+
+                        if (initialFaceWidth === null) {
+                            initialFaceWidth = faceWidth;
+                        }
+
+                        const targetZ = (faceWidth - initialFaceWidth) / initialFaceWidth;
+
+                        smoothX += (targetX - smoothX) * smoothFactor;
+                        smoothY += (targetY - smoothY) * smoothFactor;
+                        smoothZ += (targetZ - smoothZ) * smoothFactor;
+
+                        updateLayers();
+                        trackingStatus.textContent = `👁️ 追跡中 | X: ${smoothX.toFixed(2)} Y: ${smoothY.toFixed(2)} Z: ${smoothZ.toFixed(2)}`;
+                    } else {
+                        noFaceCounter++;
+
+                        if (noFaceCounter > 10) {
+                            trackingStatus.textContent = '👤 顔が検出されません - カメラの前に移動してください';
+                        }
+                    }
+                }
+            } catch(e) {}
+
+            requestAnimationFrame(detectFace);
+        }
+
+        function updateLayers() {
+            const layers = sceneContainer.querySelectorAll('.layer');
+            const zoomFactor = 1 + smoothZ * 0.3;
+
+            layers.forEach((layer, i) => {
+                const depth = (i - layers.length/2) * 30;
+                const offsetX = smoothX * (i + 1) * 10;
+                const offsetY = -smoothY * (i + 1) * 10;
+                const offsetZ = smoothZ * (i + 1) * 40;
+
+                layer.style.transform = `
+                    translate3d(${offsetX}px, ${offsetY}px, ${depth + offsetZ}px)
+                    rotateX(${smoothY * 10}deg)
+                    rotateY(${smoothX * 10}deg)
+                    scale(${zoomFactor})
+                `;
+            });
+        }
+
+        closeBtn.addEventListener('click', () => {
+            if (isTracking) stopCamera();
+            viewerScreen.style.display = 'none';
+            titleBar.style.display = 'none';
+            trackingStatus.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            sceneContainer.innerHTML = '';
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && viewerScreen.style.display === 'block') {
+                closeBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
