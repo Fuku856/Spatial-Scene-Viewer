@@ -77,7 +77,7 @@ Spatial-Scene-Viewer/
 
 - **Generator**: [3D Spatial Scene Generator](https://huggingface.co/spaces/Ryo563/spatial-scene-generator)
 - **Viewer**: [Viewer](https://spatial-scene-viewer.pages.dev)
-- **Hugging Face**:[Hugging Face](https://huggingface.co/spaces/Ryo563/spatial-scene-generator/tree/main)
+- **Hugging Face**: [Hugging Face](https://huggingface.co/spaces/Ryo563/spatial-scene-generator/tree/main)
 - **Model**: [Depth-Anything V2](https://huggingface.co/depth-anything/Depth-Anything-V2-Small-hf)
 
 ## 🎯 動作原理
