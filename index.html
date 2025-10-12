@@ -381,14 +381,26 @@
     <div class="container">
         <h1>🎬 3D Spatial Scene Viewer</h1>
         <p class="subtitle">深度推定で生成したHTMLファイルをアップロードして、すぐに3D体験</p>
-
+        
         <div class="generator-link">
             <p>💡 まだHTMLファイルを作成していませんか？</p>
             <a href="https://huggingface.co/spaces/Ryo563/spatial-scene-generator" target="_blank" rel="noopener noreferrer">
                 🚀 3D Spatial Scene Generator で作成する
             </a>
         </div>
-
+        
+        <div class="status" id="status"></div>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">HTMLファイルをドロップ</div>
+            <div class="upload-hint">または、クリックしてファイルを選択</div>
+        </div>
+        
+        <input type="file" id="fileInput" accept=".html">
+        
+        <button class="btn btn-primary" id="openBtn" disabled>🚀 3D体験を開始</button>
+        
         <div class="sample-section">
             <h3>🎯 サンプルで試してみる</h3>
             <div class="sample-grid" id="sampleGrid">
@@ -396,19 +408,7 @@
             </div>
             <button class="btn-load-sample" id="loadSampleBtn" disabled>選択したサンプルを読み込む</button>
         </div>
-
-        <div class="status" id="status"></div>
-
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📁</div>
-            <div class="upload-text">HTMLファイルをドロップ</div>
-            <div class="upload-hint">または、クリックしてファイルを選択</div>
-        </div>
-
-        <input type="file" id="fileInput" accept=".html">
-
-        <button class="btn btn-primary" id="openBtn" disabled>🚀 3D体験を開始</button>
-
+        
         <div class="instructions">
             <h3>📝 使い方</h3>
             <ol>
@@ -420,7 +420,7 @@
             </ol>
         </div>
     </div>
-
+    
     <div class="title-bar" id="titleBar">
         <div class="title-bar-left">
             <span>🎬</span>
@@ -433,7 +433,7 @@
             <button class="header-btn danger" id="closeBtn">✕ 閉じる</button>
         </div>
     </div>
-
+    
     <div id="viewerScreen">
         <div id="sceneContainer"></div>
         <div id="cameraPreview">
@@ -441,21 +441,20 @@
         </div>
         <div id="trackingStatus">カメラ開始ボタンをクリック</div>
     </div>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
-
+    
     <script>
-        // サンプル設定（説明文なし）
         const samples = [
             { id: 'ramen', name: 'ラーメン', icon: '🍜', file: 'samples/ramen.html' },
             { id: 'cat', name: 'ネコ', icon: '🐱', file: 'samples/cat.html' },
             { id: 'person', name: '人物', icon: '👤', file: 'samples/person.html' },
             { id: 'pagoda', name: '五重塔', icon: '🏯', file: 'samples/pagoda.html' }
         ];
-
+        
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const openBtn = document.getElementById('openBtn');
@@ -472,7 +471,7 @@
         const cameraPreview = document.getElementById('cameraPreview');
         const cameraVideo = document.getElementById('cameraVideo');
         const trackingStatus = document.getElementById('trackingStatus');
-
+        
         let htmlContent = null;
         let detector = null;
         let isTracking = false;
@@ -485,8 +484,7 @@
         let faceDetected = false;
         let noFaceCounter = 0;
         let selectedSample = null;
-
-        // サンプルカードを生成
+        
         samples.forEach(sample => {
             const card = document.createElement('div');
             card.className = 'sample-card';
@@ -498,7 +496,7 @@
             card.addEventListener('click', () => selectSample(sample.id));
             sampleGrid.appendChild(card);
         });
-
+        
         function selectSample(id) {
             document.querySelectorAll('.sample-card').forEach(card => {
                 card.classList.remove('selected');
@@ -507,58 +505,61 @@
             selectedSample = samples.find(s => s.id === id);
             loadSampleBtn.disabled = false;
         }
-
+        
         loadSampleBtn.addEventListener('click', async () => {
             if (!selectedSample) return;
-
+            
             try {
                 status.textContent = `⏳ ${selectedSample.name}サンプルを読み込み中...`;
                 status.className = 'status';
                 status.style.display = 'block';
-
+                
                 const response = await fetch(selectedSample.file);
-                if (!response.ok) throw new Error('サンプルファイルが見つかりません');
-
-                htmlContent = await response.text();
-                const validation = validateSpatialSceneHTML(htmlContent);
-
-                if (!validation.valid) {
-                    showStatus('❌ ' + validation.error, 'error');
+                if (!response.ok) {
+                    showStatus(`❌ ${selectedSample.name}サンプルが見つかりません。サンプルファイルをアップロードしてください。`, 'error');
                     return;
                 }
-
+                
+                htmlContent = await response.text();
+                const validation = validateSpatialSceneHTML(htmlContent);
+                
+                if (!validation.valid) {
+                    showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。`, 'error');
+                    return;
+                }
+                
                 showStatus(`✅ ${selectedSample.name}サンプル読み込み完了！`, 'success');
                 openBtn.disabled = false;
             } catch(e) {
-                showStatus('❌ サンプルファイルの読み込みに失敗しました', 'error');
+                showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。ネットワークを確認してください。`, 'error');
             }
         });
-
+        
         uploadArea.addEventListener('click', () => fileInput.click());
-
+        
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
         });
-
+        
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.classList.remove('dragover');
         });
-
+        
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
             handleFile(e.dataTransfer.files[0]);
         });
-
+        
         fileInput.addEventListener('change', (e) => {
             handleFile(e.target.files[0]);
         });
-
+        
         function validateSpatialSceneHTML(htmlString) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlString, 'text/html');
-
+            
             const metaTag = doc.querySelector('meta[name="spatial-scene-generator"]');
             if (!metaTag) {
                 return {
@@ -566,7 +567,7 @@
                     error: 'このHTMLファイルは3D Spatial Scene Generatorで作成されたものではありません。'
                 };
             }
-
+            
             const layers = doc.querySelectorAll('.layer');
             if (layers.length === 0) {
                 return {
@@ -574,7 +575,7 @@
                     error: 'レイヤー情報が見つかりません。正しいファイルか確認してください。'
                 };
             }
-
+            
             const layerImages = doc.querySelectorAll('.layer img');
             if (layerImages.length === 0) {
                 return {
@@ -582,33 +583,33 @@
                     error: 'レイヤー画像が見つかりません。正しいファイルか確認してください。'
                 };
             }
-
+            
             return {
                 valid: true,
                 layerCount: layerImages.length
             };
         }
-
+        
         function handleFile(file) {
             if (!file) return;
-
+            
             if (!file.name.endsWith('.html')) {
                 showStatus('❌ HTMLファイルを選択してください', 'error');
                 return;
             }
-
+            
             const reader = new FileReader();
             reader.onload = (e) => {
                 const content = e.target.result;
                 const validation = validateSpatialSceneHTML(content);
-
+                
                 if (!validation.valid) {
                     showStatus('❌ ' + validation.error, 'error');
                     openBtn.disabled = true;
                     htmlContent = null;
                     return;
                 }
-
+                
                 htmlContent = content;
                 showStatus(`✅ ${file.name} - ファイル検証完了！（${validation.layerCount}層のレイヤーを検出）`, 'success');
                 openBtn.disabled = false;
@@ -618,59 +619,59 @@
             };
             reader.readAsText(file);
         }
-
+        
         function showStatus(message, type) {
             status.textContent = message;
             status.className = 'status ' + type;
             status.style.display = 'block';
         }
-
+        
         openBtn.addEventListener('click', () => {
             if (!htmlContent) return;
-
+            
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, 'text/html');
             const layers = doc.querySelectorAll('.layer img');
-
+            
             sceneContainer.innerHTML = '';
             layers.forEach((img, index) => {
                 const layerDiv = document.createElement('div');
                 layerDiv.className = 'layer';
                 layerDiv.id = 'layer' + index;
-
+                
                 const imgEl = document.createElement('img');
                 imgEl.src = img.src;
                 layerDiv.appendChild(imgEl);
-
+                
                 sceneContainer.appendChild(layerDiv);
             });
-
+            
             viewerScreen.style.display = 'block';
             titleBar.style.display = 'flex';
             startCameraBtn.style.display = 'inline-block';
             trackingStatus.style.display = 'block';
             document.body.style.overflow = 'hidden';
         });
-
+        
         startCameraBtn.addEventListener('click', async () => {
             try {
                 trackingStatus.textContent = '⏳ カメラ初期化中...';
-
+                
                 streamRef = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user', width: 640, height: 480 }
                 });
-
+                
                 cameraVideo.srcObject = streamRef;
                 await cameraVideo.play();
                 cameraPreview.style.display = 'block';
-
+                
                 trackingStatus.textContent = '🔄 顔検出モデル読み込み中...';
                 const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
                 detector = await faceLandmarksDetection.createDetector(model, {
                     runtime: 'mediapipe',
                     solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh'
                 });
-
+                
                 isTracking = true;
                 initialFaceWidth = null;
                 faceDetected = false;
@@ -679,46 +680,46 @@
                 stopCameraBtn.style.display = 'inline-block';
                 resetBtn.style.display = 'inline-block';
                 detectFace();
-
+                
             } catch(e) {
                 trackingStatus.textContent = '❌ カメラエラー: ' + e.message;
             }
         });
-
+        
         stopCameraBtn.addEventListener('click', () => {
             stopCamera();
         });
-
+        
         resetBtn.addEventListener('click', () => {
             smoothX = 0;
             smoothY = 0;
             smoothZ = 0;
             initialFaceWidth = null;
-
+            
             const layers = sceneContainer.querySelectorAll('.layer');
             layers.forEach(layer => layer.style.transform = '');
-
+            
             trackingStatus.textContent = '🔄 カメラ位置をリセットしました';
         });
-
+        
         function stopCamera() {
             isTracking = false;
-
+            
             if (detector) detector = null;
-
+            
             if (streamRef) {
                 streamRef.getTracks().forEach(track => track.stop());
                 streamRef = null;
             }
-
+            
             if (cameraVideo.srcObject) cameraVideo.srcObject = null;
-
+            
             cameraPreview.style.display = 'none';
             stopCameraBtn.style.display = 'none';
             resetBtn.style.display = 'none';
             startCameraBtn.style.display = 'inline-block';
             trackingStatus.textContent = 'カメラ停止中';
-
+            
             const layers = sceneContainer.querySelectorAll('.layer');
             layers.forEach(layer => layer.style.transform = '');
             smoothX = 0;
@@ -726,62 +727,62 @@
             smoothZ = 0;
             initialFaceWidth = null;
         }
-
+        
         async function detectFace() {
             if (!isTracking || !detector) return;
-
+            
             try {
                 if (cameraVideo.readyState === cameraVideo.HAVE_ENOUGH_DATA) {
                     const faces = await detector.estimateFaces(cameraVideo);
-
+                    
                     if (faces && faces.length > 0) {
                         faceDetected = true;
                         noFaceCounter = 0;
-
+                        
                         const nose = faces[0].keypoints[1];
                         const leftEye = faces[0].keypoints[33];
                         const rightEye = faces[0].keypoints[263];
-
+                        
                         const targetX = ((nose.x / cameraVideo.videoWidth) - 0.5) * 2;
                         const targetY = ((nose.y / cameraVideo.videoHeight) - 0.5) * 2;
-
+                        
                         const faceWidth = Math.abs(rightEye.x - leftEye.x);
-
+                        
                         if (initialFaceWidth === null) {
                             initialFaceWidth = faceWidth;
                         }
-
+                        
                         const targetZ = (faceWidth - initialFaceWidth) / initialFaceWidth;
-
+                        
                         smoothX += (targetX - smoothX) * smoothFactor;
                         smoothY += (targetY - smoothY) * smoothFactor;
                         smoothZ += (targetZ - smoothZ) * smoothFactor;
-
+                        
                         updateLayers();
                         trackingStatus.textContent = `👁️ 追跡中 | X: ${smoothX.toFixed(2)} Y: ${smoothY.toFixed(2)} Z: ${smoothZ.toFixed(2)}`;
                     } else {
                         noFaceCounter++;
-
+                        
                         if (noFaceCounter > 10) {
                             trackingStatus.textContent = '👤 顔が検出されません - カメラの前に移動してください';
                         }
                     }
                 }
             } catch(e) {}
-
+            
             requestAnimationFrame(detectFace);
         }
-
+        
         function updateLayers() {
             const layers = sceneContainer.querySelectorAll('.layer');
             const zoomFactor = 1 + smoothZ * 0.3;
-
+            
             layers.forEach((layer, i) => {
                 const depth = (i - layers.length/2) * 30;
                 const offsetX = smoothX * (i + 1) * 10;
                 const offsetY = -smoothY * (i + 1) * 10;
                 const offsetZ = smoothZ * (i + 1) * 40;
-
+                
                 layer.style.transform = `
                     translate3d(${offsetX}px, ${offsetY}px, ${depth + offsetZ}px)
                     rotateX(${smoothY * 10}deg)
@@ -790,7 +791,7 @@
                 `;
             });
         }
-
+        
         closeBtn.addEventListener('click', () => {
             if (isTracking) stopCamera();
             viewerScreen.style.display = 'none';
@@ -799,7 +800,7 @@
             document.body.style.overflow = 'auto';
             sceneContainer.innerHTML = '';
         });
-
+        
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && viewerScreen.style.display === 'block') {
                 closeBtn.click();
