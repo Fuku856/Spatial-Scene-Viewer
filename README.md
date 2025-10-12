@@ -2,7 +2,9 @@
 
 AI深度推定で生成した3D空間シーンを、カメラ顔追跡で体験できるWebビューアー
 
-**🚀 [Live Demo](https://spatial-scene-viewer.pages.dev)** | **📖 [Generator](https://huggingface.co/spaces/Ryo563/spatial-scene-generator)**
+
+**🚀 [Spatial Scene Viewer](https://spatial-scene-viewer.pages.dev)** | **📖 [Spatial Scene Generator](https://huggingface.co/spaces/Ryo563/spatial-scene-generator)**
+
 
 ## ✨ 特徴
 
@@ -69,11 +71,14 @@ Spatial-Scene-Viewer/
 - 「カメラ開始」ボタンをクリック
 - 顔がカメラに映っているか確認
 - 明るい場所で試す
+- 鼻を隠さない (この顔認識モデルは鼻を使用します)
 
 ## 🔗 関連リンク
 
 - **Generator**: [3D Spatial Scene Generator](https://huggingface.co/spaces/Ryo563/spatial-scene-generator)
-- **Live Demo**: [Viewer](https://spatial-scene-viewer.pages.dev)
+- **Viewer**: [Viewer](https://spatial-scene-viewer.pages.dev)
+- **Hugging Face**:[Hugging Face](https://huggingface.co/spaces/Ryo563/spatial-scene-generator/tree/main)
+- **Model**: [Depth-Anything V2](https://huggingface.co/depth-anything/Depth-Anything-V2-Small-hf)
 
 ## 🎯 動作原理
 
