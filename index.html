@@ -450,10 +450,10 @@
     
     <script>
         const samples = [
-            { id: 'ramen', name: 'ラーメン', icon: '🍜', file: 'samples/ramen.html' },
-            { id: 'cat', name: 'ネコ', icon: '🐱', file: 'samples/cat.html' },
-            { id: 'person', name: '人物', icon: '👤', file: 'samples/person.html' },
-            { id: 'pagoda', name: '五重塔', icon: '🏯', file: 'samples/pagoda.html' }
+            { id: 'ramen', name: 'ラーメン', icon: '🍜', file: 'https://spatial-scene-viewer.pages.dev/samples/ramen.html' },
+            { id: 'cat', name: 'ネコ', icon: '🐱', file: 'https://spatial-scene-viewer.pages.dev/samples/cat.html' },
+            { id: 'person', name: '人物', icon: '👤', file: 'https://spatial-scene-viewer.pages.dev/samples/person.html' },
+            { id: 'pagoda', name: '五重塔', icon: '🏯', file: 'https://spatial-scene-viewer.pages.dev/samples/pagoda.html' }
         ];
         
         const uploadArea = document.getElementById('uploadArea');
@@ -515,7 +515,11 @@
                 status.className = 'status';
                 status.style.display = 'block';
                 
-                const response = await fetch(selectedSample.file);
+                const response = await fetch(selectedSample.url, {
+                    method: 'GET',
+                    mode: 'cors',  // 追加
+                    credentials: 'omit'  // 追加
+                });
                 if (!response.ok) {
                     showStatus(`❌ ${selectedSample.name}サンプルが見つかりません。サンプルファイルをアップロードしてください。`, 'error');
                     return;
