@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Spatial Scene - iOS 26 Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            touch-action: none;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            perspective: 800px;
+            overflow: hidden;
+            background: #000;
+        }
+        /* iOS 26風：背景レイヤー（ボケて後退） */
+        #backgroundLayer {
+            position: absolute;
+            width: 110%;
+            height: 110%;
+            top: -5%;
+            left: -5%;
+            transform-style: preserve-3d;
+            transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        #backgroundLayer::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(8px) brightness(0.6);
+            -webkit-filter: blur(8px) brightness(0.6);
+            transform: translateZ(-150px) scale(1.2);
+        }
+        /* iOS 26風：被写体レイヤー（クリアで前面） */
+        #subjectLayer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-style: preserve-3d;
+            transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        #subjectLayer::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: brightness(1.05) contrast(1.1);
+            -webkit-filter: brightness(1.05) contrast(1.1);
+            transform: translateZ(50px);
+        }
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: calc(100vw - 200px);
+        }
+        button, label {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        button:hover, label:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        button:active, label:active {
+            transform: scale(0.95);
+        }
+        input[type="file"] {
+            display: none;
+        }
+        #status {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 12px;
+            max-width: 90%;
+            text-align: center;
+            z-index: 99;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #videoContainer {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            width: 120px;
+            height: 90px;
+            z-index: 98;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        .depth-indicator {
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            z-index: 99;
+            display: none;
+            color: white;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+        /* モバイル用レスポンシブ */
+        @media screen and (max-width: 768px) {
+            #controls {
+                max-width: calc(100vw - 20px);
+            }
+            button, label {
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+            #status {
+                bottom: 140px;
+                font-size: 11px;
+            }
+            #videoContainer {
+                width: 100px;
+                height: 75px;
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls" class="fade-in">
+        <label for="imageInput">📷 画像選択</label>
+        <input type="file" id="imageInput" accept="image/*">
+        <button id="toggleCamera">▶️ カメラ開始</button>
+    </div>
+
+    <div id="container">
+        <!-- iOS 26風：背景（ボケ） + 被写体（クリア）の2層構造 -->
+        <div id="backgroundLayer"></div>
+        <div id="subjectLayer"></div>
+    </div>
+
+    <div id="status" class="fade-in">画像を選択してください</div>
+    <div class="depth-indicator">
+        <div>距離: <span id="depthValue">0.0</span></div>
+    </div>
+    <div id="videoContainer">
+        <video id="video" autoplay playsinline muted></video>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+
+    <script>
+        const backgroundLayer = document.getElementById('backgroundLayer');
+        const subjectLayer = document.getElementById('subjectLayer');
+        const video = document.getElementById('video');
+        const videoContainer = document.getElementById('videoContainer');
+        const status = document.getElementById('status');
+        const toggleBtn = document.getElementById('toggleCamera');
+        const imageInput = document.getElementById('imageInput');
+        const depthIndicator = document.querySelector('.depth-indicator');
+        const depthValue = document.getElementById('depthValue');
+
+        let detector = null;
+        let isTracking = false;
+        let animationId = null;
+        let currentImageData = null;
+        let lastTime = Date.now();
+        let fps = 0;
+        let frameCount = 0;
+        let streamRef = null;
+
+        // スムージング
+        let smoothX = 0;
+        let smoothY = 0;
+        let smoothZ = 0;
+        const smoothFactor = 0.25;
+
+        // 画像アップロード（iOS 26風：同じ画像を背景と被写体に使用）
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    currentImageData = event.target.result;
+
+                    const img = new Image();
+                    img.onload = function() {
+                        // 同じ画像を2層に適用（iOS 26と同じアプローチ）
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            #backgroundLayer::before { background-image: url("${currentImageData}"); }
+                            #subjectLayer::before { background-image: url("${currentImageData}"); }
+                        `;
+
+                        const oldStyle = document.getElementById('dynamic-bg');
+                        if (oldStyle) oldStyle.remove();
+
+                        style.id = 'dynamic-bg';
+                        document.head.appendChild(style);
+                    };
+                    img.src = currentImageData;
+
+                    status.textContent = '✨ 画像読み込み完了 - カメラで空間シーンを体験';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // カメラ初期化
+        async function initCamera() {
+            try {
+                status.textContent = '⏳ カメラ初期化中...';
+
+                if (streamRef) {
+                    streamRef.getTracks().forEach(track => track.stop());
+                    streamRef = null;
+                }
+
+                streamRef = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = streamRef;
+
+                await new Promise((resolve, reject) => {
+                    video.onloadedmetadata = async () => {
+                        try {
+                            video.muted = true;
+                            await video.play();
+                            resolve();
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    setTimeout(() => reject(new Error('タイムアウト')), 10000);
+                });
+
+                videoContainer.style.display = 'block';
+                status.textContent = '🔄 モデル読み込み中...';
+
+                const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+                detector = await faceLandmarksDetection.createDetector(model, {
+                    runtime: 'mediapipe',
+                    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
+                    maxFaces: 1
+                });
+
+                isTracking = true;
+                toggleBtn.textContent = '⏸️ カメラ停止';
+                depthIndicator.style.display = 'block';
+                lastTime = Date.now();
+                frameCount = 0;
+
+                detectFace();
+
+            } catch (error) {
+                console.error('Camera error:', error);
+                status.textContent = '❌ エラー: ' + error.message;
+                stopCamera();
+            }
+        }
+
+        // 距離推定（負の値対応）
+        function estimateDistance(keypoints) {
+            const leftCheek = keypoints[234];
+            const rightCheek = keypoints[454];
+            const faceWidth = Math.sqrt(
+                Math.pow(rightCheek.x - leftCheek.x, 2) +
+                Math.pow(rightCheek.y - leftCheek.y, 2)
+            );
+
+            const topHead = keypoints[10];
+            const chin = keypoints[152];
+            const faceHeight = Math.sqrt(
+                Math.pow(chin.x - topHead.x, 2) +
+                Math.pow(chin.y - topHead.y, 2)
+            );
+
+            const avgFaceSize = (faceWidth + faceHeight) / 2;
+
+            // -0.8から1.2の範囲で正規化
+            const normalizedDistance = (avgFaceSize - 150) / 120;
+            return Math.max(-0.8, Math.min(1.2, normalizedDistance));
+        }
+
+        // 顔検出（iOS 26風パララックス）
+        async function detectFace() {
+            if (!isTracking || !detector) return;
+
+            const now = Date.now();
+
+            try {
+                const deltaTime = now - lastTime;
+                if (deltaTime < 33) {
+                    animationId = requestAnimationFrame(detectFace);
+                    return;
+                }
+
+                if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+                    animationId = requestAnimationFrame(detectFace);
+                    return;
+                }
+
+                const faces = await detector.estimateFaces(video, {
+                    flipHorizontal: false
+                });
+
+                if (faces && faces.length > 0) {
+                    const keypoints = faces[0].keypoints;
+                    const nose = keypoints[1];
+
+                    const targetX = ((nose.x / video.videoWidth) - 0.5) * 2;
+                    const targetY = ((nose.y / video.videoHeight) - 0.5) * 2;
+                    const targetZ = estimateDistance(keypoints);
+
+                    smoothX += (targetX - smoothX) * smoothFactor;
+                    smoothY += (targetY - smoothY) * smoothFactor;
+                    smoothZ += (targetZ - smoothZ) * smoothFactor;
+
+                    // iOS 26風：背景は大きく動き、被写体は微妙に動く
+                    const bgRotateY = smoothX * 15;
+                    const bgRotateX = -smoothY * 15;
+                    const bgScale = 1 + (smoothZ * 0.08);
+
+                    const subRotateY = smoothX * 8;
+                    const subRotateX = -smoothY * 8;
+                    const subScale = 1 + (smoothZ * 0.15);
+
+                    // 背景：遠くにあるので大きく動く
+                    backgroundLayer.style.transform = `
+                        translate3d(${smoothX * 20}px, ${smoothY * 20}px, 0)
+                        rotateX(${bgRotateX}deg)
+                        rotateY(${bgRotateY}deg)
+                        scale(${bgScale})
+                    `;
+
+                    // 被写体：近くにあるので小さく動く
+                    subjectLayer.style.transform = `
+                        translate3d(${smoothX * 8}px, ${smoothY * 8}px, 0)
+                        rotateX(${subRotateX}deg)
+                        rotateY(${subRotateY}deg)
+                        scale(${subScale})
+                    `;
+
+                    depthValue.textContent = smoothZ.toFixed(2);
+
+                    frameCount++;
+                    if (now - lastTime >= 1000) {
+                        fps = frameCount;
+                        frameCount = 0;
+                        lastTime = now;
+                    }
+
+                    status.textContent = `👁️ 空間シーン追跡中 | ${fps}FPS`;
+                } else {
+                    status.textContent = '👤 顔が検出されていません';
+                }
+
+            } catch (error) {
+                console.error('Detection error:', error);
+            }
+
+            animationId = requestAnimationFrame(detectFace);
+        }
+
+        // カメラ停止
+        function stopCamera() {
+            isTracking = false;
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            if (detector) {
+                detector = null;
+            }
+
+            if (streamRef) {
+                streamRef.getTracks().forEach(track => track.stop());
+                streamRef = null;
+            }
+
+            if (video.srcObject) {
+                video.srcObject = null;
+            }
+
+            videoContainer.style.display = 'none';
+            depthIndicator.style.display = 'none';
+            toggleBtn.textContent = '▶️ カメラ開始';
+            status.textContent = '⏹️ カメラ停止中';
+
+            backgroundLayer.style.transform = '';
+            subjectLayer.style.transform = '';
+            smoothX = 0;
+            smoothY = 0;
+            smoothZ = 0;
+        }
+
+        // イベント
+        toggleBtn.addEventListener('click', async () => {
+            if (!isTracking) {
+                await initCamera();
+            } else {
+                stopCamera();
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isTracking) {
+                stopCamera();
+            }
+        });
+
+        // デフォルト画像
+        const defaultImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23667eea;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23764ba2;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill="url(%23grad)" width="1200" height="800"/%3E%3Ctext x="600" y="400" font-size="48" fill="white" text-anchor="middle" font-family="sans-serif"%3E✨ 画像を選択%3C/text%3E%3C/svg%3E';
+
+        const style = document.createElement('style');
+        style.textContent = `
+            #backgroundLayer::before { background-image: url("${defaultImage}"); }
+            #subjectLayer::before { background-image: url("${defaultImage}"); }
+        `;
+        style.id = 'dynamic-bg';
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
