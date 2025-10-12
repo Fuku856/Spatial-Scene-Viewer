@@ -10,6 +10,8 @@
             padding: 0;
             box-sizing: border-box;
         }
+        
+        /* テーマ: グラデーション（デフォルト） */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -18,7 +20,109 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            position: relative;
+            overflow-x: hidden;
         }
+        
+        /* テーマ: 星空 */
+        body.theme-stars {
+            background: #000;
+        }
+        
+        body.theme-stars::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="%23000" width="100%" height="100%"/></svg>'),
+                url('assets/skystarfield_aom_lq.jpg');
+            background-size: cover;
+            background-position: center;
+            z-index: -2;
+        }
+        
+        body.theme-stars::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('assets/cosmostar_aom_lq.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.5;
+            z-index: -1;
+            animation: float 60s infinite alternate ease-in-out;
+        }
+        
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(-2%, 2%) scale(1.05); }
+        }
+        
+        /* 動く星のアニメーション */
+        body.theme-stars #stars {
+            display: block;
+        }
+        
+        #stars {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle linear infinite;
+            box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+        
+        /* テーマ切り替えボタン */
+        .theme-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .theme-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
         .container {
             width: 100%;
             max-width: 900px;
@@ -375,10 +479,22 @@
                 width: 100px;
                 height: 75px;
             }
+            .theme-btn {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 12px;
+            }
         }
     </style>
 </head>
-<body>
+<body class="theme-gradient">
+    <!-- 動く星のコンテナ -->
+    <div id="stars"></div>
+    
+    <!-- テーマ切り替えボタン -->
+    <button class="theme-btn" id="themeBtn">🌈 グラデーション</button>
+    
     <div class="container">
         <h1>🎬 3D Spatial Scene Viewer</h1>
         <p class="subtitle">深度推定で生成したHTMLファイルをアップロードして、すぐに3D体験</p>
@@ -404,9 +520,7 @@
         
         <div class="sample-section">
             <h3>🎯 サンプルで試してみる</h3>
-            <div class="sample-grid" id="sampleGrid">
-                <!-- サンプルカードはJavaScriptで動的生成 -->
-            </div>
+            <div class="sample-grid" id="sampleGrid"></div>
             <button class="btn-load-sample" id="loadSampleBtn" disabled>選択したサンプルを読み込む</button>
         </div>
         
@@ -449,6 +563,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
     
     <script>
+        // サンプル設定
         const samples = [
             { id: 'ramen', name: 'ラーメン', icon: '🍜', file: '/samples/ramen.html' },
             { id: 'cat', name: 'ネコ', icon: '🐱', file: '/samples/cat.html' },
@@ -456,6 +571,63 @@
             { id: 'pagoda', name: '五重塔', icon: '🏯', file: '/samples/pagoda.html' }
         ];
         
+        // テーマ管理
+        const themes = ['gradient', 'stars'];
+        const themeIcons = {
+            'gradient': '🌈 グラデーション',
+            'stars': '⭐ 星空'
+        };
+        let currentTheme = 'gradient';
+        
+        const themeBtn = document.getElementById('themeBtn');
+        const starsContainer = document.getElementById('stars');
+        
+        // 動く星を生成
+        function createStars() {
+            starsContainer.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        // テーマ切り替え
+        function switchTheme() {
+            const nextTheme = currentTheme === 'gradient' ? 'stars' : 'gradient';
+            
+            document.body.classList.remove(`theme-${currentTheme}`);
+            document.body.classList.add(`theme-${nextTheme}`);
+            
+            currentTheme = nextTheme;
+            themeBtn.textContent = themeIcons[nextTheme === 'gradient' ? 'stars' : 'gradient'];
+            
+            localStorage.setItem('viewerTheme', currentTheme);
+            
+            if (currentTheme === 'stars') {
+                createStars();
+            }
+        }
+        
+        // ページ読み込み時にテーマを復元
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('viewerTheme') || 'gradient';
+            if (savedTheme === 'stars') {
+                document.body.classList.remove('theme-gradient');
+                document.body.classList.add('theme-stars');
+                currentTheme = 'stars';
+                themeBtn.textContent = themeIcons['gradient'];
+                createStars();
+            }
+        });
+        
+        themeBtn.addEventListener('click', switchTheme);
+        
+        // 既存の変数
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const openBtn = document.getElementById('openBtn');
@@ -486,6 +658,7 @@
         let noFaceCounter = 0;
         let selectedSample = null;
         
+        // サンプルカード生成
         samples.forEach(sample => {
             const card = document.createElement('div');
             card.className = 'sample-card';
@@ -507,47 +680,35 @@
             loadSampleBtn.disabled = false;
         }
         
-loadSampleBtn.addEventListener('click', async () => {
-    if (!selectedSample) return;
-    
-    try {
-        status.textContent = `⏳ ${selectedSample.name}サンプルを読み込み中...`;
-        status.className = 'status';
-        status.style.display = 'block';
-        
-        console.log('Fetching:', selectedSample.file);  // デバッグ用
-        
-        const response = await fetch(selectedSample.file);
-        
-        console.log('Response status:', response.status);  // デバッグ用
-        console.log('Response ok:', response.ok);  // デバッグ用
-        
-        if (!response.ok) {
-            showStatus(`❌ ${selectedSample.name}サンプルが見つかりません（${response.status}）`, 'error');
-            console.error('Fetch failed:', response.status, response.statusText);
-            return;
-        }
-        
-        htmlContent = await response.text();
-        
-        console.log('Content length:', htmlContent.length);  // デバッグ用
-        
-        const validation = validateSpatialSceneHTML(htmlContent);
-        
-        if (!validation.valid) {
-            showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。`, 'error');
-            console.error('Validation failed:', validation.error);
-            return;
-        }
-        
-        showStatus(`✅ ${selectedSample.name}サンプル読み込み完了！`, 'success');
-        openBtn.disabled = false;
-    } catch(e) {
-        showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。`, 'error');
-        console.error('Error loading sample:', e);
-    }
-});
-
+        loadSampleBtn.addEventListener('click', async () => {
+            if (!selectedSample) return;
+            
+            try {
+                status.textContent = `⏳ ${selectedSample.name}サンプルを読み込み中...`;
+                status.className = 'status';
+                status.style.display = 'block';
+                
+                const response = await fetch(selectedSample.file);
+                
+                if (!response.ok) {
+                    showStatus(`❌ ${selectedSample.name}サンプルが見つかりません（${response.status}）`, 'error');
+                    return;
+                }
+                
+                htmlContent = await response.text();
+                const validation = validateSpatialSceneHTML(htmlContent);
+                
+                if (!validation.valid) {
+                    showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。`, 'error');
+                    return;
+                }
+                
+                showStatus(`✅ ${selectedSample.name}サンプル読み込み完了！`, 'success');
+                openBtn.disabled = false;
+            } catch(e) {
+                showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。`, 'error');
+            }
+        });
         
         uploadArea.addEventListener('click', () => fileInput.click());
         
