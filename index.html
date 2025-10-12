@@ -450,10 +450,10 @@
     
     <script>
         const samples = [
-            { id: 'ramen', name: 'ラーメン', icon: '🍜', file: 'https://spatial-scene-viewer.pages.dev/samples/ramen.html' },
-            { id: 'cat', name: 'ネコ', icon: '🐱', file: 'https://spatial-scene-viewer.pages.dev/samples/cat.html' },
-            { id: 'person', name: '人物', icon: '👤', file: 'https://spatial-scene-viewer.pages.dev/samples/person.html' },
-            { id: 'pagoda', name: '五重塔', icon: '🏯', file: 'https://spatial-scene-viewer.pages.dev/samples/pagoda.html' }
+            { id: 'ramen', name: 'ラーメン', icon: '🍜', file: '/samples/ramen.html' },
+            { id: 'cat', name: 'ネコ', icon: '🐱', file: '/samples/cat.html' },
+            { id: 'person', name: '人物', icon: '👤', file: '/samples/person.html' },
+            { id: 'pagoda', name: '五重塔', icon: '🏯', file: '/samples/pagoda.html' }
         ];
         
         const uploadArea = document.getElementById('uploadArea');
@@ -507,38 +507,47 @@
             loadSampleBtn.disabled = false;
         }
         
-        loadSampleBtn.addEventListener('click', async () => {
-            if (!selectedSample) return;
-            
-            try {
-                status.textContent = `⏳ ${selectedSample.name}サンプルを読み込み中...`;
-                status.className = 'status';
-                status.style.display = 'block';
-                
-                const response = await fetch(selectedSample.url, {
-                    method: 'GET',
-                    mode: 'cors',  // 追加
-                    credentials: 'omit'  // 追加
-                });
-                if (!response.ok) {
-                    showStatus(`❌ ${selectedSample.name}サンプルが見つかりません。サンプルファイルをアップロードしてください。`, 'error');
-                    return;
-                }
-                
-                htmlContent = await response.text();
-                const validation = validateSpatialSceneHTML(htmlContent);
-                
-                if (!validation.valid) {
-                    showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。`, 'error');
-                    return;
-                }
-                
-                showStatus(`✅ ${selectedSample.name}サンプル読み込み完了！`, 'success');
-                openBtn.disabled = false;
-            } catch(e) {
-                showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。ネットワークを確認してください。`, 'error');
-            }
-        });
+loadSampleBtn.addEventListener('click', async () => {
+    if (!selectedSample) return;
+    
+    try {
+        status.textContent = `⏳ ${selectedSample.name}サンプルを読み込み中...`;
+        status.className = 'status';
+        status.style.display = 'block';
+        
+        console.log('Fetching:', selectedSample.file);  // デバッグ用
+        
+        const response = await fetch(selectedSample.file);
+        
+        console.log('Response status:', response.status);  // デバッグ用
+        console.log('Response ok:', response.ok);  // デバッグ用
+        
+        if (!response.ok) {
+            showStatus(`❌ ${selectedSample.name}サンプルが見つかりません（${response.status}）`, 'error');
+            console.error('Fetch failed:', response.status, response.statusText);
+            return;
+        }
+        
+        htmlContent = await response.text();
+        
+        console.log('Content length:', htmlContent.length);  // デバッグ用
+        
+        const validation = validateSpatialSceneHTML(htmlContent);
+        
+        if (!validation.valid) {
+            showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。`, 'error');
+            console.error('Validation failed:', validation.error);
+            return;
+        }
+        
+        showStatus(`✅ ${selectedSample.name}サンプル読み込み完了！`, 'success');
+        openBtn.disabled = false;
+    } catch(e) {
+        showStatus(`❌ ${selectedSample.name}サンプルの読み込みに失敗しました。`, 'error');
+        console.error('Error loading sample:', e);
+    }
+});
+
         
         uploadArea.addEventListener('click', () => fileInput.click());
         
