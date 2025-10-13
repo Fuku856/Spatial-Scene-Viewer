@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 背景画像の最適化（WebP変換など）
 - モバイル最適化
 - クロスブラウザテスト完了
+- UI非表示機能の追加
 
 ### v1.2.0 検討中
 - ジャイロスコープ対応（モバイル）
