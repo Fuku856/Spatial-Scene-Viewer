@@ -383,51 +383,75 @@
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            padding: 15px 20px;
+            padding: 12px 15px;
             display: none;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .title-bar-content {
+            display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
         .title-bar-left {
             color: white;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
-        .title-bar-right {
+        .title-bar-controls {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         .header-btn {
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
-            padding: 10px 20px;
+            padding: 10px 18px;
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.2s;
             white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .header-btn:hover {
             background: rgba(255, 255, 255, 0.25);
             transform: translateY(-1px);
         }
+        .header-btn.success {
+            background: rgba(76, 175, 80, 0.25);
+            border-color: rgba(76, 175, 80, 0.4);
+        }
+        .header-btn.success:hover {
+            background: rgba(76, 175, 80, 0.35);
+        }
+        .header-btn.warning {
+            background: rgba(255, 152, 0, 0.25);
+            border-color: rgba(255, 152, 0, 0.4);
+        }
+        .header-btn.warning:hover {
+            background: rgba(255, 152, 0, 0.35);
+        }
         .header-btn.danger {
-            background: rgba(244, 67, 54, 0.2);
+            background: rgba(244, 67, 54, 0.25);
             border-color: rgba(244, 67, 54, 0.4);
         }
         .header-btn.danger:hover {
-            background: rgba(244, 67, 54, 0.3);
+            background: rgba(244, 67, 54, 0.35);
         }
         #sceneContainer {
             position: absolute;
-            top: 60px;
+            top: 90px;
             left: 0;
             right: 0;
             bottom: 0;
@@ -453,15 +477,15 @@
         #cameraPreview {
             position: fixed;
             bottom: 20px;
-            left: 20px;
-            width: 160px;
-            height: 120px;
-            border: 2px solid rgba(255,255,255,0.2);
+            right: 20px;
+            width: 140px;
+            height: 105px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 12px;
             overflow: hidden;
             display: none;
             z-index: 10000;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
         video {
             width: 100%;
@@ -471,40 +495,48 @@
         }
         #trackingStatus {
             position: fixed;
-            bottom: 20px;
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
             color: white;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(20px);
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 13px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 12px;
             z-index: 10000;
             display: none;
             max-width: 90%;
             text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
         @media screen and (max-width: 768px) {
             .sample-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
             .title-bar {
-                padding: 10px 15px;
+                padding: 10px 12px;
             }
             .title-bar-left {
                 font-size: 14px;
             }
             .header-btn {
-                padding: 8px 16px;
+                padding: 8px 14px;
                 font-size: 12px;
             }
-            .title-bar-right {
-                flex-wrap: wrap;
+            .title-bar-controls {
+                width: 100%;
             }
             #cameraPreview {
                 width: 100px;
                 height: 75px;
+                bottom: 15px;
+                right: 15px;
+            }
+            #trackingStatus {
+                top: 70px;
+                font-size: 11px;
+                padding: 8px 16px;
             }
             .theme-btn {
                 bottom: 10px;
@@ -564,24 +596,26 @@
     </div>
     
     <div class="title-bar" id="titleBar">
-        <div class="title-bar-left">
-            <span>🎬</span>
-            <span>3D Spatial Scene Viewer</span>
-        </div>
-        <div class="title-bar-right">
-            <button class="header-btn" id="resetBtn" style="display: none;">🔄 リセット</button>
-            <button class="header-btn" id="startCameraBtn" style="display: none;">▶️ カメラ開始</button>
-            <button class="header-btn" id="stopCameraBtn" style="display: none;">⏸️ カメラ停止</button>
+        <div class="title-bar-content">
+            <div class="title-bar-left">
+                <span>🎬</span>
+                <span>3D Spatial Scene Viewer</span>
+            </div>
             <button class="header-btn danger" id="closeBtn">✕ 閉じる</button>
+        </div>
+        <div class="title-bar-controls">
+            <button class="header-btn" id="resetBtn" style="display: none;">🔄 リセット</button>
+            <button class="header-btn success" id="startCameraBtn" style="display: none;">▶️ カメラ開始</button>
+            <button class="header-btn warning" id="stopCameraBtn" style="display: none;">⏸️ カメラ停止</button>
         </div>
     </div>
     
     <div id="viewerScreen">
         <div id="sceneContainer"></div>
+        <div id="trackingStatus">カメラ開始ボタンをクリック</div>
         <div id="cameraPreview">
             <video id="cameraVideo" autoplay playsinline muted></video>
         </div>
-        <div id="trackingStatus">カメラ開始ボタンをクリック</div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
