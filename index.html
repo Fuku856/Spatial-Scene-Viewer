@@ -982,8 +982,11 @@
             viewerScreen.style.display = 'block';
             titleBar.style.display = 'flex';
             startCameraBtn.style.display = 'inline-block';
+            flipBtn.style.display = 'inline-block';
             trackingStatus.style.display = 'block';
             document.body.style.overflow = 'hidden';
+
+            flipState = { horizontal: 1, vertical: 1 };
         });
         
         startCameraBtn.addEventListener('click', async () => {
@@ -1130,6 +1133,7 @@
             viewerScreen.style.display = 'none';
             titleBar.style.display = 'none';
             trackingStatus.style.display = 'none';
+            flipMenu.classList.remove('active');
             document.body.style.overflow = 'auto';
             sceneContainer.innerHTML = '';
         });
