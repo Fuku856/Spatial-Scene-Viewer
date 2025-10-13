@@ -613,20 +613,33 @@
         </div>
     </div>
     
-    <div class="title-bar" id="titleBar">
-        <div class="title-bar-content">
-            <div class="title-bar-left">
-                <span>🎬</span>
-                <span>3D Spatial Scene Viewer</span>
-            </div>
-            <button class="header-btn danger" id="closeBtn">✕ 閉じる</button>
+<div class="title-bar" id="titleBar">
+    <div class="title-bar-content">
+        <div class="title-bar-left">
+            <span>🎬</span>
+            <span>3D Spatial Scene Viewer</span>
         </div>
-        <div class="title-bar-controls">
-            <button class="header-btn" id="resetBtn" style="display: none;">🔄 リセット</button>
-            <button class="header-btn success" id="startCameraBtn" style="display: none;">▶️ カメラ開始</button>
-            <button class="header-btn warning" id="stopCameraBtn" style="display: none;">⏸️ カメラ停止</button>
-        </div>
+        <button class="header-btn danger" id="closeBtn">✕ 閉じる</button>
     </div>
+    <div class="title-bar-controls">
+        <button class="header-btn" id="resetBtn" style="display: none;">🔄 リセット</button>
+        
+        <!-- 反転ボタン（ドロップダウン） -->
+        <div class="flip-dropdown">
+            <button class="header-btn" id="flipBtn" style="display: none;">🔄 反転</button>
+            <div class="flip-menu" id="flipMenu">
+                <button class="flip-option" data-flip="vertical">↕️ 上下反転</button>
+                <button class="flip-option" data-flip="horizontal">↔️ 左右反転</button>
+                <button class="flip-option" data-flip="both">🔃 180度回転</button>
+                <button class="flip-option" data-flip="reset">↩️ 元に戻す</button>
+            </div>
+        </div>
+        
+        <button class="header-btn success" id="startCameraBtn" style="display: none;">▶️ カメラ開始</button>
+        <button class="header-btn warning" id="stopCameraBtn" style="display: none;">⏸️ カメラ停止</button>
+    </div>
+</div>
+
     
     <div id="viewerScreen">
         <div id="sceneContainer"></div>
@@ -742,6 +755,66 @@
         let faceDetected = false;
         let noFaceCounter = 0;
         let selectedSample = null;
+
+        // 反転機能の変数
+    let flipState = {
+        horizontal: 1,
+        vertical: 1
+    };
+    
+    const flipBtn = document.getElementById('flipBtn');
+    const flipMenu = document.getElementById('flipMenu');
+    
+    // 反転ボタンのトグル
+    flipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        flipMenu.classList.toggle('active');
+    });
+    
+    // メニュー外クリックで閉じる
+    document.addEventListener('click', (e) => {
+        if (!flipBtn.contains(e.target) && !flipMenu.contains(e.target)) {
+            flipMenu.classList.remove('active');
+        }
+    });
+    
+    // 反転オプションの処理
+    document.querySelectorAll('.flip-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const flipType = option.dataset.flip;
+            
+            switch(flipType) {
+                case 'vertical':
+                    flipState.vertical *= -1;
+                    break;
+                case 'horizontal':
+                    flipState.horizontal *= -1;
+                    break;
+                case 'both':
+                    flipState.horizontal *= -1;
+                    flipState.vertical *= -1;
+                    break;
+                case 'reset':
+                    flipState.horizontal = 1;
+                    flipState.vertical = 1;
+                    break;
+            }
+            
+            applyFlip();
+            flipMenu.classList.remove('active');
+        });
+    });
+    
+    // 反転を適用する関数
+    function applyFlip() {
+        const layers = sceneContainer.querySelectorAll('.layer');
+        layers.forEach(layer => {
+            const img = layer.querySelector('img');
+            if (img) {
+                img.style.transform = `scaleX(${flipState.horizontal}) scaleY(${flipState.vertical})`;
+            }
+        });
+    }
         
         // サンプルカード生成
         samples.forEach(sample => {
