@@ -493,58 +493,76 @@
             object-fit: cover;
             transform: scaleX(-1);
         }
-        #trackingStatus {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 12px;
-            z-index: 10000;
-            display: none;
-            max-width: 90%;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-        @media screen and (max-width: 768px) {
-            .sample-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .title-bar {
-                padding: 10px 12px;
-            }
-            .title-bar-left {
-                font-size: 14px;
-            }
-            .header-btn {
-                padding: 8px 14px;
-                font-size: 12px;
-            }
-            .title-bar-controls {
-                width: 100%;
-            }
-            #cameraPreview {
-                width: 100px;
-                height: 75px;
-                bottom: 15px;
-                right: 15px;
-            }
-            #trackingStatus {
-                top: 70px;
-                font-size: 11px;
-                padding: 8px 16px;
-            }
-            .theme-btn {
-                bottom: 10px;
-                right: 10px;
-                padding: 10px 16px;
-                font-size: 12px;
-            }
-        }
+/* トラッキングステータス - 位置を再調整 */
+#trackingStatus {
+    position: fixed;
+    top: 110px;  /* 80px → 110px に変更 */
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(20px);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 10000;
+    display: none;
+    max-width: 90%;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* シーンコンテナも調整 */
+#sceneContainer {
+    position: absolute;
+    top: 90px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    perspective: 800px;
+    perspective-origin: 50% 50%;
+    overflow: hidden;
+}
+
+@media screen and (max-width: 768px) {
+    .title-bar {
+        padding: 10px 12px;
+    }
+    
+    .title-bar-left {
+        font-size: 14px;
+    }
+    
+    .header-btn {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+    
+    .title-bar-controls {
+        width: 100%;
+    }
+    
+    #cameraPreview {
+        width: 100px;
+        height: 75px;
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    /* スマホではさらに下に移動 */
+    #trackingStatus {
+        top: 95px;  /* 70px → 95px */
+        font-size: 11px;
+        padding: 8px 16px;
+    }
+    
+    .theme-btn {
+        bottom: 10px;
+        right: 10px;
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+}
     </style>
 </head>
 <body class="theme-gradient">
